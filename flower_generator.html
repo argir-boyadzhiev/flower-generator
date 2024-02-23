@@ -1,0 +1,308 @@
+﻿<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8"/>
+	<title>Генератор на цветя</title>
+
+	<script src="webgl-fmi.js"> </script>
+	<script src="leaf.js"> </script>
+	<script src="stem.js"> </script>
+	<script src="observer.js"> </script>
+	<script src="bud.js"> </script>
+	<script src="petal.js"> </script>
+
+	
+	<script id="vshader" type="x-shader/x-vertex">
+		precision mediump float;
+		precision mediump int;
+		uniform mat4 uProjectionMatrix;
+		uniform mat4 uViewMatrix;
+		uniform mat4 uModelMatrix;
+		uniform int uPlantPart;
+
+		attribute vec3 aXYZ; // координати на връх
+		attribute vec2 aUV; // текстурни координати
+		attribute vec3 aNormal; // нормала
+
+		varying vec2 vUV;
+		varying vec3 vNormal;
+
+		void main ()
+		{
+			if (uPlantPart == 0 || uPlantPart == 3) { // Leaf or Petal
+				vUV = aUV;
+			}
+			if (uPlantPart == 3) {
+				vNormal = normalize(mat3(uModelMatrix) * aNormal);
+				vNormal.xy *= -1.0;
+				vNormal = normalize(mat3(uViewMatrix) * vNormal);
+			}
+			else {
+				vNormal = vec3(0,0,0);
+			}
+			gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aXYZ ,1);
+		}
+	</script>
+	
+	<script id="fshader" type="x-shader/x-fragment">
+		precision mediump float;
+		precision mediump int;
+
+		uniform int uPlantPart;
+		uniform float uAngle;
+		uniform float uPetalEdge;
+		uniform float uPetalEdgeWidth;
+
+		varying vec2 vUV;
+		varying vec3 vNormal;
+ 
+
+		vec4 getColorFrom256(int r, int g, int b) {
+			return vec4(r, g, b, 256) /256.0;
+		}
+
+		vec2 powOf2(vec2 c) {
+			vec2 c1;
+			c1.x = c.x * c.x - c.y * c.y;
+			c1.y = 2.0*c.x * c.y;
+			return c1;
+		}
+		
+		vec2 mandelbrot(vec2 z, vec2 constant) {
+			vec2 res = powOf2(z) + constant;
+			return res;
+		}
+
+		float getMandelbrotValue(float angle, float mandelWidth) {
+			vec2 xRange = vec2(-0.78, 0.27);
+			vec2 yRange = vec2(-0.7, 0.7);
+			vec2 mandelOffset = vec2(-0.12, 0.66);
+			mandelOffset.x = xRange[0] + (xRange[1] - xRange[0]) * cos(angle);
+			mandelOffset.y = yRange[0] + (yRange[1] - yRange[0]) * sin(angle);
+			
+			vec2 constant = (vUV * mandelWidth + vec2(mandelOffset.x - mandelWidth * 0.5, mandelOffset.y - mandelWidth * 0.5)) * 0.5;
+			const int iterations = 18;
+			int endI = 0;
+			vec2 res = vec2(0.0, 0.0);
+			for(int i=0; i<iterations; i++) {
+				if (length(res) > 1.0) {
+					endI = i;
+					break;
+				}
+				res = mandelbrot(res, constant);
+			}
+			return float(endI) / float(iterations);
+		}
+ 
+		void main( )
+		{
+			float y = vUV.y;
+			float x = vUV.x;
+			vec4 bladeColor = getColorFrom256(7, 237, 20);
+			vec4 bladeColorOther = getColorFrom256(217, 194, 80);
+			vec4 midribColor = getColorFrom256(30, 66, 32);
+
+			if (uPlantPart == 1) { // Stem
+				gl_FragColor = midribColor;
+				return;
+			}
+
+			if (uPlantPart == 3) {
+				if (vUV.y > 1.0 - uPetalEdgeWidth) {
+					float edgeY = (vUV.y - (1.0 - uPetalEdgeWidth)) / uPetalEdgeWidth;
+					if ((cos((1.0 - vUV.x) * 3.141 * uPetalEdge) * 0.5 * (1.0 - vUV.x) + 0.5) < edgeY) {
+						discard;
+					}
+				}
+
+				gl_FragColor = vec4(1, 1, 1, 1);
+
+				float circleOffset = uAngle;
+				
+				gl_FragColor.r -= getMandelbrotValue(uAngle, 2.0);
+				gl_FragColor.g -= getMandelbrotValue(-uAngle - 1.0, 1.5);
+				gl_FragColor.b -= getMandelbrotValue(-uAngle + 1.0, 1.2);
+
+				// Color dimming when looking from angle
+				float colorBrightness = 0.5 + 0.5 * dot(vNormal, vec3(0,0,1));
+				gl_FragColor.rgb *= colorBrightness;
+				
+				return;
+			}
+
+			float k = abs(sin((y + x * 0.2) * 20.0 * 3.14));
+			vec4 resColor = mix(bladeColorOther, bladeColor, k);
+
+			if (x < 0.1) {
+				float k = x / 0.1;
+				gl_FragColor = mix(midribColor, resColor, k);
+			}
+			else if (x > 0.7) {
+				float k = 1.0 - (x - 0.7) / 0.3;
+				gl_FragColor = mix(midribColor, resColor, k);
+			}
+			else {
+				gl_FragColor = resColor;
+			}
+		}
+	</script>
+
+	<script>
+		var k=100;
+		var halfK = k /2;
+		var uTime;
+
+		var leafVertexData = [];
+		var leafPrecision = 100;
+		var stemVertexData = [];
+		var stemPrecision = 30;
+		var budVertexData = [];
+		var budPrecision = 30;
+    	var stemLength = 20; 
+		var petalVertexData = [];
+		var petalPrecision = 100;
+		var numberOfPetals;
+
+		function start( )
+		{
+			var	canvas = document.getElementById("picasso");
+			canvas.addEventListener('webglcontextlost',function(event){event.preventDefault();},false);
+			canvas.addEventListener('webglcontextrestored',function(){init();},false);
+			canvas.addEventListener('mousedown', mouseStartDrag);
+			document.addEventListener('mouseup', mouseEndDrag);
+			document.addEventListener('mousemove', mouseDrag);
+			canvas.addEventListener('wheel', zoom);
+			window.addEventListener('keydown', translateObserverKeyDown);
+			window.addEventListener('keyup', translateObserverKeyUp);
+
+			init();
+			drawFrame();
+		}
+		
+		function bezier1(p0, p1, p2, p3, t) {
+			var nt = 1 - t;
+			return nt*nt*nt*p0 + 3*nt*nt*t*p1 + 3*nt*t*t*p2 + nt*nt*nt*p3;
+		}
+
+		function bezier2(p0, p1, p2, p3, t) {
+			return [bezier1(p0[0], p1[0], p2[0], p3[0], t), bezier1(p0[1], p1[1], p2[1], p3[1], t)];
+		}
+
+		var leafPlacements = [];
+
+		var leafBuffer;
+		var stemBuffer;
+		var budBuffer;
+		var petalBuffer;
+		function init()
+		{
+			gl = getContext("picasso");
+			glprog = getProgram("vshader","fshader");
+
+			aXYZ = gl.getAttribLocation(glprog,"aXYZ");
+			aUV = gl.getAttribLocation(glprog, "aUV");
+			aNormal = gl.getAttribLocation(glprog, "aNormal");
+			uProjectionMatrix = gl.getUniformLocation(glprog,"uProjectionMatrix");
+			uPlantPart = gl.getUniformLocation(glprog, "uPlantPart");
+			uViewMatrix = gl.getUniformLocation(glprog,"uViewMatrix");
+			uModelMatrix = gl.getUniformLocation(glprog,"uModelMatrix");
+			uAngle = gl.getUniformLocation(glprog, "uAngle");
+			uPetalEdge = gl.getUniformLocation(glprog, "uPetalEdge");
+			uPetalEdgeWidth = gl.getUniformLocation(glprog, "uPetalEdgeWidth");
+
+			uTime = gl.getUniformLocation(glprog,"uTime");
+
+			gl.enable(gl.DEPTH_TEST);
+			gl.clearColor(0.2,0.2,0.2,1);
+
+			identity();
+			perspective(30,gl.canvas.width/gl.canvas.height,1,40000);
+
+			generateLeafs();
+			generateLeafPlacements();
+
+			generateStem();
+
+			generateBud();
+
+			generatePetals();
+
+			gl.uniform1f(uAngle, random(0, Math.PI * 2));
+			gl.uniform1f(uPetalEdge, random(1, 6));
+			gl.uniform1f(uPetalEdgeWidth, random(0.05, 0.25));
+
+			leafBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER,leafBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(leafVertexData), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(aXYZ);
+			gl.enableVertexAttribArray(aUV);
+			
+			stemBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, stemBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stemVertexData), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(aXYZ);
+
+			budBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, budBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(budVertexData), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(aXYZ);
+
+			petalBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, petalBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(petalVertexData), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(aXYZ);
+			gl.enableVertexAttribArray(aUV);
+			gl.enableVertexAttribArray(aNormal);
+		}
+		
+		var frame = 0;
+		var lastFrame = 0;
+	
+		function getNonlinearAnimationTime(linearTime) {
+			return 1 - bezier1(0, 1, 0, 1, linearTime);
+		}
+
+		function drawFrame()
+		{
+			frame++;
+			gl.clear(gl.COLOR_BUFFER_BIT+gl.DEPTH_BUFFER_BIT); // изчистваме цвета и дълбочината
+			var animationTime = 1;
+			var frameSpanForAnimation = 600;
+			if (frame < frameSpanForAnimation) {
+				animationTime = frame / frameSpanForAnimation;
+			}
+
+			recalculateObserverPosition(frame - lastFrame);
+			lookAt(observer.position, observer.center, [0,0,1]);
+
+			drawLeafs(animationTime);
+			drawStem(animationTime < 0.5 ? animationTime * 2 : 1);
+			drawBud(animationTime < 0.5 ? animationTime * 2 : 1);
+			drawPetals(animationTime > 0.5 ? (animationTime - 0.5) * 2 : 0);
+	
+			requestAnimationFrame(drawFrame);
+			lastFrame = frame;
+		}
+	</script>	
+</head>
+
+<body onload="start()">
+	<h2>Генератор на цветя</h2>
+
+	<noscript>
+		Искаме JavaScript, но няма!
+	</noscript>
+	
+	<canvas id="picasso" width="1000" height="600" style="border: solid;">
+		Искаме canvas, но няма!
+	</canvas>
+	<div>
+		<h3> Навигация: </h3>
+		<li> mouse drag за ротация около точка на фокус</li>
+		<li> mouse scroll за приближаване и отдалечаване от точката на фокус </li>
+		<li> 'w','a','s' и 'd' за преместване на точката на фокус напред, наляво, назад и надясно</li>
+		<li> 'e' и 'q' за преместване на точката на фокус нагоре и надолу</li>
+		<li> ако двичението чрез клавиятурата не работи проблема може да е от грешен език на въвеждане (трябва да използвате латиница)</li>
+	</div>
+	
+</body>
