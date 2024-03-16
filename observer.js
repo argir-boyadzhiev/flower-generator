@@ -55,22 +55,18 @@ function recalculateObserverPosition(deltaTime) {
 
 }
 
- function mouseStartDrag(event) {
+function startDrag(x, y) {
     mouseData.inDrag = true;
-    var x = event.clientX-gl.canvas.offsetLeft;
-    var y = event.clientY-gl.canvas.offsetTop;
     mouseData.initX = x;
     mouseData.initY = y;
 }
 
-function mouseEndDrag() {
+function endDrag() {
     mouseData.inDrag = false;
 }
 
-function mouseDrag(event) {
+function drag(x, y) {
     if (mouseData.inDrag) {
-        var x = event.clientX-gl.canvas.offsetLeft;
-        var y = event.clientY-gl.canvas.offsetTop;
         var deltaX = x - mouseData.initX;
         var deltaY = y - mouseData.initY;
         mouseData.initX = x;
@@ -84,6 +80,22 @@ function mouseDrag(event) {
             observer.verticalAngle += verticalDelta;
         }
     }
+}
+
+function mouseStartDrag(event) {
+    startDrag(event.clientX-gl.canvas.offsetLeft, event.clientY-gl.canvas.offsetTop);
+}
+
+function touchStart(event) {
+    startDrag(event.touches[0].clientX, event.touches[0].clientY);
+}
+
+function mouseDrag(event) {
+    drag(event.clientX-gl.canvas.offsetLeft, event.clientY-gl.canvas.offsetTop);
+}
+
+function touchMove(event) {
+    drag(event.touches[0].clientX, event.touches[0].clientY);
 }
 
 function zoom(event) {

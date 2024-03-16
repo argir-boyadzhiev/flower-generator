@@ -167,14 +167,12 @@
 			canvasElement.style.height = renderHeight + "px";
 
 			var gl = getContext("picasso");
-			console.log(gl.canvas.height);
 			gl.canvas.width = renderWidth;
 			gl.canvas.height = renderHeight;
 			gl.viewport(0, 0, renderWidth, renderHeight)
 			if (cameraLoaded) {
 				perspective(30, gl.canvas.width / gl.canvas.height, 1, 40000);
 			}
-			console.log("updated");
 		}
 
 		var k=100;
@@ -197,9 +195,15 @@
 			var	canvas = document.getElementById("picasso");
 			canvas.addEventListener('webglcontextlost',function(event){event.preventDefault();},false);
 			canvas.addEventListener('webglcontextrestored',function(){init();},false);
-			canvas.addEventListener('pointerdown', mouseStartDrag);
-			document.addEventListener('pointerup', mouseEndDrag);
-			document.addEventListener('pointermove', mouseDrag);
+
+			canvas.addEventListener('mousedown', mouseStartDrag);
+			canvas.addEventListener('touchstart', touchStart);
+			
+			document.addEventListener('pointerup', endDrag);
+
+			document.addEventListener('mousemove', mouseDrag);
+			document.addEventListener('touchmove', touchMove);
+
 			canvas.addEventListener('wheel', zoom);
 			window.addEventListener('keydown', translateObserverKeyDown);
 			window.addEventListener('keyup', translateObserverKeyUp);
