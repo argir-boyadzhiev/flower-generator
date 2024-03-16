@@ -2,7 +2,7 @@
 
 <head>
 	<meta charset="utf-8"/>
-	<title>Генератор на цветя</title>
+	<title>Flower generator</title>
 
 	<script src="webgl-fmi.js"> </script>
 	<script src="leaf.js"> </script>
@@ -11,6 +11,12 @@
 	<script src="bud.js"> </script>
 	<script src="petal.js"> </script>
 
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+		}
+	</style>
 	
 	<script id="vshader" type="x-shader/x-vertex">
 		precision mediump float;
@@ -148,6 +154,26 @@
 	</script>
 
 	<script>
+		var cameraLoaded = false;
+		function updateResolution() {
+			var renderWidth = window.innerWidth;
+			var renderHeight = window.innerHeight;
+			
+			var canvasElement = document.getElementById('picasso');
+			canvasElement.style.width = (window.innerWidth - 30) + "px";
+			canvasElement.style.height = (window.innerHeight - 30) + "px";
+
+			var gl = getContext("picasso");
+			console.log(gl.canvas.height);
+			gl.canvas.width = renderWidth;
+			gl.canvas.height = renderHeight;
+			gl.viewport(0, 0, renderWidth, renderHeight)
+			if (cameraLoaded) {
+				perspective(30, gl.canvas.width / gl.canvas.height, 1, 40000);
+			}
+			console.log("updated");
+		}
+
 		var k=100;
 		var halfK = k /2;
 		var uTime;
@@ -168,12 +194,13 @@
 			var	canvas = document.getElementById("picasso");
 			canvas.addEventListener('webglcontextlost',function(event){event.preventDefault();},false);
 			canvas.addEventListener('webglcontextrestored',function(){init();},false);
-			canvas.addEventListener('mousedown', mouseStartDrag);
-			document.addEventListener('mouseup', mouseEndDrag);
-			document.addEventListener('mousemove', mouseDrag);
+			canvas.addEventListener('pointerdown', mouseStartDrag);
+			document.addEventListener('pointerup', mouseEndDrag);
+			document.addEventListener('pointermove', mouseDrag);
 			canvas.addEventListener('wheel', zoom);
 			window.addEventListener('keydown', translateObserverKeyDown);
 			window.addEventListener('keyup', translateObserverKeyUp);
+			window.addEventListener('resize', updateResolution);
 
 			init();
 			drawFrame();
@@ -217,6 +244,8 @@
 
 			identity();
 			perspective(30,gl.canvas.width/gl.canvas.height,1,40000);
+			cameraLoaded = true;
+			updateResolution();
 
 			generateLeafs();
 			generateLeafPlacements();
@@ -287,22 +316,11 @@
 </head>
 
 <body onload="start()">
-	<h2>Генератор на цветя</h2>
-
 	<noscript>
-		Искаме JavaScript, но няма!
+		JavaScript not available!
 	</noscript>
 	
-	<canvas id="picasso" width="1000" height="600" style="border: solid;">
-		Искаме canvas, но няма!
+	<canvas id="picasso" style="border: solid; background-color: blue; width: 1000px; height: 600px;">
+		Canvas not available!
 	</canvas>
-	<div>
-		<h3> Навигация: </h3>
-		<li> mouse drag за ротация около точка на фокус</li>
-		<li> mouse scroll за приближаване и отдалечаване от точката на фокус </li>
-		<li> 'w','a','s' и 'd' за преместване на точката на фокус напред, наляво, назад и надясно</li>
-		<li> 'e' и 'q' за преместване на точката на фокус нагоре и надолу</li>
-		<li> ако двичението чрез клавиятурата не работи проблема може да е от грешен език на въвеждане (трябва да използвате латиница)</li>
-	</div>
-	
 </body>
