@@ -2,6 +2,8 @@
 
 <head>
 	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
 	<title>Flower generator</title>
 
 	<script src="webgl-fmi.js"> </script>
@@ -15,6 +17,7 @@
 		* {
 			margin: 0;
 			padding: 0;
+			overflow: hidden;
 		}
 	</style>
 	
@@ -160,8 +163,8 @@
 			var renderHeight = window.innerHeight;
 			
 			var canvasElement = document.getElementById('picasso');
-			canvasElement.style.width = (window.innerWidth - 30) + "px";
-			canvasElement.style.height = (window.innerHeight - 30) + "px";
+			canvasElement.style.width = renderWidth + "px";
+			canvasElement.style.height = renderHeight + "px";
 
 			var gl = getContext("picasso");
 			console.log(gl.canvas.height);
