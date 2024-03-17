@@ -82,6 +82,30 @@ function drag(x, y) {
     }
 }
 
+function translateOnScreenSurface(x, y) {
+    if (mouseData.inDrag) {
+        var deltaX = x - mouseData.initX;
+        var deltaY = y - mouseData.initY;
+        mouseData.initX = x;
+        mouseData.initY = y;
+
+        var alpha = observer.horizontalAngle;
+        var beta = observer.verticalAngle;
+
+        var front = new Array();
+        front[2] = - Math.sin(beta);
+        front[0] = - Math.sin(alpha) * Math.cos(beta); 
+        front[1] = - Math.cos(alpha) * Math.cos(beta);
+        
+        var right = unitVector(vectorProduct(front, [0, 0, 1]));
+        var up = vectorProduct(right, front);
+
+        observer.center[0] += (-right[0] * deltaX + up[0] * deltaY) / 50;
+        observer.center[1] += (-right[1] * deltaX + up[1] * deltaY) / 50;
+        observer.center[2] += (-right[2] * deltaX + up[2] * deltaY) / 50;
+    }
+}
+
 function mouseStartDrag(event) {
     startDrag(event.clientX-gl.canvas.offsetLeft, event.clientY-gl.canvas.offsetTop);
 }
@@ -91,7 +115,10 @@ function touchStart(event) {
 }
 
 function mouseDrag(event) {
-    drag(event.clientX-gl.canvas.offsetLeft, event.clientY-gl.canvas.offsetTop);
+    switch (event.button || event.which) {
+        case 1: drag(event.clientX-gl.canvas.offsetLeft, event.clientY-gl.canvas.offsetTop); break;
+        case 3: translateOnScreenSurface(event.clientX-gl.canvas.offsetLeft, event.clientY-gl.canvas.offsetTop); break;
+    }
 }
 
 function touchMove(event) {

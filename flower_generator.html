@@ -212,6 +212,10 @@
 			window.addEventListener('keyup', translateObserverKeyUp);
 			window.addEventListener('resize', updateResolution);
 
+			document.addEventListener("contextmenu", function(event) {
+				event.preventDefault();
+			});
+
 			init();
 			drawFrame();
 		}
