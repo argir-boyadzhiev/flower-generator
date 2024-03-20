@@ -7,7 +7,7 @@
 	<meta http-equiv='expires' content='0'> 
 	<meta http-equiv='pragma' content='no-cache'>
 	
-	<title>1.0 Flower generator</title>
+	<title>1.1 Flower generator</title>
 
 	<script src="webgl-fmi.js"> </script>
 	<script src="leaf.js"> </script>
@@ -25,7 +25,7 @@
 	</style>
 	
 	<script id="vshader" type="x-shader/x-vertex">
-		precision mediump float;
+		precision highp float;
 		precision mediump int;
 		uniform mat4 uProjectionMatrix;
 		uniform mat4 uViewMatrix;
@@ -57,7 +57,7 @@
 	</script>
 	
 	<script id="fshader" type="x-shader/x-fragment">
-		precision mediump float;
+		precision highp float;
 		precision mediump int;
 
 		uniform int uPlantPart;
