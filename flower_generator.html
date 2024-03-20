@@ -7,7 +7,7 @@
 	<meta http-equiv='expires' content='0'> 
 	<meta http-equiv='pragma' content='no-cache'>
 	
-	<title>Flower generator</title>
+	<title>1.0 Flower generator</title>
 
 	<script src="webgl-fmi.js"> </script>
 	<script src="leaf.js"> </script>
@@ -174,7 +174,7 @@
 			gl.canvas.height = renderHeight;
 			gl.viewport(0, 0, renderWidth, renderHeight)
 			if (cameraLoaded) {
-				perspective(30, gl.canvas.width / gl.canvas.height, 1, 4000);
+				perspective(30, gl.canvas.width / gl.canvas.height, 1, 100);
 			}
 		}
 
@@ -257,7 +257,7 @@
 			gl.clearColor(0.2,0.2,0.2,1);
 
 			identity();
-			perspective(30, gl.canvas.width/gl.canvas.height, 1, 4000);
+			perspective(30, gl.canvas.width/gl.canvas.height, 1, 100);
 			cameraLoaded = true;
 			updateResolution();
 
