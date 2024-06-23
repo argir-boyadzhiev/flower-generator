@@ -235,6 +235,10 @@
 		var stemBuffer;
 		var budBuffer;
 		var petalBuffer;
+		
+		var uAngle;
+		var uAngleValue = 0;
+
 		function init()
 		{
 			gl = getContext("picasso");
@@ -270,7 +274,7 @@
 
 			generatePetals();
 
-			gl.uniform1f(uAngle, random(0, Math.PI * 2));
+			gl.uniform1f(uAngle, uAngleValue);
 			gl.uniform1f(uPetalEdge, random(1, 6));
 			gl.uniform1f(uPetalEdgeWidth, random(0.05, 0.25));
 
@@ -322,9 +326,15 @@
 			drawStem(animationTime < 0.5 ? animationTime * 2 : 1);
 			drawBud(animationTime < 0.5 ? animationTime * 2 : 1);
 			drawPetals(animationTime > 0.5 ? (animationTime - 0.5) * 2 : 0);
-	
+			
 			requestAnimationFrame(drawFrame);
 			lastFrame = frame;
+
+			uAngleValue += 0.006;
+			if (uAngleValue >= 2 * Math.PI) {
+				uAngleValue -= 2 * Math.PI;
+			}
+			gl.uniform1f(uAngle, uAngleValue);
 		}
 	</script>	
 </head>
